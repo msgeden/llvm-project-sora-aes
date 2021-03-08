@@ -595,10 +595,15 @@ BitVector X86RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
         Reserved.set(*AI);
     }
   }
+  //Added for SORA
+  if (Is64Bit) {
+    for (unsigned n = 13; n != 16; ++n) {
+      for (MCRegAliasIterator AI(X86::XMM0 + n, this, true); AI.isValid(); ++AI)
+        Reserved.set(*AI);
+    }
+    Reserved.set(X86::RBX);
+  }
 
-  assert(checkAllSuperRegsMarked(Reserved,
-                                 {X86::SIL, X86::DIL, X86::BPL, X86::SPL,
-                                  X86::SIH, X86::DIH, X86::BPH, X86::SPH}));
   return Reserved;
 }
 

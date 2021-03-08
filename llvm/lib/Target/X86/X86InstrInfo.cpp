@@ -3751,7 +3751,19 @@ void X86InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   unsigned Opc = getLoadRegOpcode(DestReg, RC, isAligned, Subtarget);
   addFrameReference(BuildMI(MBB, MI, DebugLoc(), get(Opc), DestReg), FrameIdx);
 }
-
+//void X86InstrInfo::loadGPRegFromStackSlot(MachineBasicBlock &MBB,
+//                                        MachineBasicBlock::iterator MI,
+//                                        Register DestReg, int FrameIdx,
+//                                        const TargetRegisterClass *RC,
+//                                        const TargetRegisterInfo *TRI) const {
+//  const MachineFunction &MF = *MBB.getParent();
+//  unsigned Alignment = std::max<uint32_t>(TRI->getSpillSize(*RC), 8);
+//  bool isAligned =
+//      (Subtarget.getFrameLowering()->getStackAlign() >= Alignment) ||
+//      RI.canRealignStack(MF);
+//  unsigned Opc = getLoadRegOpcode(DestReg, RC, isAligned, Subtarget);
+//  addFrameReference(BuildMI(MBB, MI, DebugLoc(), get(Opc), DestReg), FrameIdx);
+//}
 bool X86InstrInfo::analyzeCompare(const MachineInstr &MI, Register &SrcReg,
                                   Register &SrcReg2, int &CmpMask,
                                   int &CmpValue) const {

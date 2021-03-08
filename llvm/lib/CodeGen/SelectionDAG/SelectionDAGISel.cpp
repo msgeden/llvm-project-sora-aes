@@ -655,6 +655,21 @@ bool SelectionDAGISel::runOnMachineFunction(MachineFunction &mf) {
     }
   }
 
+  //Added for SORA
+  bool hasReturn=false;
+  for (const auto &MBB : *MF) {
+    for (const auto &MI : MBB) {
+      if (MI.isReturn())
+        hasReturn=true;
+    }
+  }
+  if (MFI.hasCalls() && hasReturn){
+        MFI.setHasSORA(true);
+  }
+  if (MF->getName()=="main"){
+        MFI.setIsMainSORA(true);
+  }
+
   // Determine if there is a call to setjmp in the machine function.
   MF->setExposesReturnsTwice(Fn.callsFunctionThatReturnsTwice());
 
