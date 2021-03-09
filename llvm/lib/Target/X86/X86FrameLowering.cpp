@@ -2188,28 +2188,27 @@ void X86FrameLowering::emitEpilogue(MachineFunction &MF,
     MachineBasicBlock::iterator AfterPop = MBBI;
     if (HasFP)
     {
-        //if (!MFI.hasSORA()){
-            // Pop EBP.
-            BuildMI(MBB, MBBI, DL, TII.get(Is64Bit ? X86::POP64r : X86::POP32r),
+        // Pop EBP.
+        BuildMI(MBB, MBBI, DL, TII.get(Is64Bit ? X86::POP64r : X86::POP32r),
                     MachineFramePtr)
             .setMIFlag(MachineInstr::FrameDestroy);
-            if (NeedsDwarfCFI)
+        if (NeedsDwarfCFI)
+        {
+            unsigned DwarfStackPtr =
+                 TRI->getDwarfRegNum(Is64Bit ? X86::RSP : X86::ESP, true);
+            BuildCFI(MBB, MBBI, DL,
+                      MCCFIInstruction::cfiDefCfa(nullptr, DwarfStackPtr, SlotSize));
+            if (!MBB.succ_empty() && !MBB.isReturnBlock())
             {
-                unsigned DwarfStackPtr =
-                    TRI->getDwarfRegNum(Is64Bit ? X86::RSP : X86::ESP, true);
-                BuildCFI(MBB, MBBI, DL,
-                         MCCFIInstruction::cfiDefCfa(nullptr, DwarfStackPtr, SlotSize));
-                if (!MBB.succ_empty() && !MBB.isReturnBlock())
-                {
-                    unsigned DwarfFramePtr = TRI->getDwarfRegNum(MachineFramePtr, true);
-                    BuildCFI(MBB, AfterPop, DL,
-                             MCCFIInstruction::createRestore(nullptr, DwarfFramePtr));
-                    --MBBI;
-                    --AfterPop;
-                }
-                --MBBI;
-            }
-        //}
+                 unsigned DwarfFramePtr = TRI->getDwarfRegNum(MachineFramePtr, true);
+                 BuildCFI(MBB, AfterPop, DL,
+                          MCCFIInstruction::createRestore(nullptr, DwarfFramePtr));
+                  --MBBI;
+                  --AfterPop;
+             }
+             --MBBI;
+          }
+
     }
 
     MachineBasicBlock::iterator FirstCSPop = MBBI;
@@ -2338,6 +2337,28 @@ void X86FrameLowering::emitEpilogue(MachineFunction &MF,
             Offset += mergeSPUpdates(MBB, Terminator, true);
             emitSPUpdate(MBB, Terminator, DL, Offset, /*InEpilogue=*/true);
         }
+    }
+
+    if (MF.getFrameInfo().hasSORA()){
+        const BasicBlock *LLVM_BB = MBB.getBasicBlock();
+        MachineBasicBlock *successMBB = MF.CreateMachineBasicBlock(LLVM_BB);
+        MachineBasicBlock *failMBB = MF.CreateMachineBasicBlock(LLVM_BB);
+        MachineFunction::iterator MBBIter = ++MBB.getIterator();
+        MF.insert(MBBIter, successMBB);
+        MF.insert(MBBIter, failMBB);
+        BuildMI(MBB, MBBI, DL,TII.get(X86::CMP64rr)).addReg(X86::R11).addReg(X86::R11).setMIFlag(MachineInstr::FrameDestroy);
+        BuildMI(MBB, MBBI, DL, TII.get(X86::JCC_1)).addMBB(failMBB).addImm(X86::COND_NE).setMIFlag(MachineInstr::FrameDestroy);
+
+        MBB.addSuccessor(failMBB);
+        // BB management
+        successMBB->splice(successMBB->end(), &MBB, MBBI, MBB.end());
+        successMBB->transferSuccessorsAndUpdatePHIs(&MBB);
+        MBB.addSuccessor(successMBB);
+        MachineBasicBlock::iterator MBBIFail=failMBB->begin();
+        BuildMI(*failMBB, MBBIFail, DL,TII.get(X86::MOV64ri)).addReg(X86::RDI).addImm(113).setMIFlag(MachineInstr::FrameDestroy);
+        BuildMI(*failMBB, MBBIFail, DL, TII.get(X86::CALL64pcrel32)).addExternalSymbol("exit").setMIFlag(MachineInstr::FrameDestroy);
+        recomputeLiveIns(*successMBB);
+        recomputeLiveIns(*failMBB);
     }
 }
 
@@ -2821,14 +2842,11 @@ bool X86FrameLowering::restoreCalleeSavedRegisters(
     unsigned GPRSP=0;
     if (MBB.getParent()->getFrameInfo().hasSORA())
     {
-        //TODO: Do not forget to include RBP in MAC or HASH directly. We do not reload RBP here as all following register reloads are dependent on this value
-        //        if (hasFP(*MF)){
-//            const unsigned FramePtr = TRI->getFrameRegister(*MF);
-//            const unsigned MachineFramePtr = STI.isTarget64BitILP32() ? unsigned(getX86SubSuperRegister(FramePtr, 64)):FramePtr;
-//            addRegOffset(BuildMI(MBB, MI, DL, TII.get(Is64Bit ? X86::MOV64rm : X86::MOV32rm), MachineFramePtr),
-//                             MachineFramePtr, false, 0).setMIFlag(MachineInstr::FrameDestroy);
-//            GPRSP+=SlotSize;
-//        }
+        //TODO: Do not forget to include RBP in MAC or HASH directly at [RBP]. We do not reload RBP here as all following register reloads are dependent on this value
+        if (hasFP(*MF)){
+            BuildMI(MBB, MI, DL, TII.get(X86::NOOP))
+            .setMIFlag(MachineInstr::FrameDestroy);
+        }
         // Reload GPRs from stack frame with the order of their pushes
         for (unsigned i = CSI.size(); i != 0; --i)
         {
