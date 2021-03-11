@@ -663,7 +663,8 @@ bool SelectionDAGISel::runOnMachineFunction(MachineFunction &mf) {
         hasReturn=true;
     }
   }
-  if (MFI.hasCalls() && hasReturn){
+  //if (MFI.hasCalls() && hasReturn && MF->getName()!="main" && MF->getFunction().getCallingConv()==CallingConv::X86_64_SysV){
+  if (MFI.hasCalls() && hasReturn && MF->getName()!="main"){
         MFI.setHasSORA(true);
   }
   if (MF->getName()=="main"){

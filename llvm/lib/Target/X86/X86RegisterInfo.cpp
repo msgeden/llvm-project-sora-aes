@@ -597,11 +597,12 @@ BitVector X86RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   }
   //Added for SORA
   if (Is64Bit) {
-    for (unsigned n = 13; n != 16; ++n) {
+    for (unsigned n = 11; n != 16; ++n) {
       for (MCRegAliasIterator AI(X86::XMM0 + n, this, true); AI.isValid(); ++AI)
         Reserved.set(*AI);
     }
-    Reserved.set(X86::RBX);
+    //Reserved.set(X86::RBX);
+    //Reserved.set(X86::XMM12);
   }
 
   return Reserved;

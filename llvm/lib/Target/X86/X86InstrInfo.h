@@ -353,6 +353,10 @@ public:
                             int FrameIndex, const TargetRegisterClass *RC,
                             const TargetRegisterInfo *TRI) const override;
 
+  void loadGPRegFromStackSlot(MachineBasicBlock &MBB,
+                            MachineBasicBlock::iterator MI, Register DestReg,
+                            int FrameIndex, const TargetRegisterClass *RC,
+                            const TargetRegisterInfo *TRI) const override;
   bool expandPostRAPseudo(MachineInstr &MI) const override;
 
   /// Check whether the target can fold a load that feeds a subreg operand

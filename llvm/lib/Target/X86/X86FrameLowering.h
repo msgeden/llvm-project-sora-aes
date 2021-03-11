@@ -98,6 +98,14 @@ public:
                               const TargetRegisterInfo *TRI) const override;
 
   bool hasFP(const MachineFunction &MF) const override;
+
+  // Added for SORA
+  /// Emits AES128 encryption round by assuming round keys are stored on XMM4-XMM15 registers
+  void emitAES128EncryptionRounds(MachineBasicBlock &MBB,
+                                     MachineBasicBlock::iterator MBBI,
+                                     const DebugLoc &DL,
+                                     Register Message) const;
+
   bool hasReservedCallFrame(const MachineFunction &MF) const override;
   bool canSimplifyCallFramePseudos(const MachineFunction &MF) const override;
   bool needsFrameIndexResolution(const MachineFunction &MF) const override;

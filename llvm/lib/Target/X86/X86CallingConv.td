@@ -1099,14 +1099,22 @@ def CSR_64_RT_MostRegs : CalleeSavedRegs<(add CSR_64, RAX, RCX, RDX, RSI, RDI,
                                               R8, R9, R10, RSP)>;
 
 // All registers - except r11
+//def CSR_64_RT_AllRegs     : CalleeSavedRegs<(add CSR_64_RT_MostRegs,
+//                                                 (sequence "XMM%u", 0, 15))>;
+
 def CSR_64_RT_AllRegs     : CalleeSavedRegs<(add CSR_64_RT_MostRegs,
-                                                 (sequence "XMM%u", 0, 15))>;
+                                                 (sequence "XMM%u", 0, 10))>;
+
 def CSR_64_RT_AllRegs_AVX : CalleeSavedRegs<(add CSR_64_RT_MostRegs,
                                                  (sequence "YMM%u", 0, 15))>;
 
+//def CSR_64_MostRegs : CalleeSavedRegs<(add RBX, RCX, RDX, RSI, RDI, R8, R9, R10,
+//                                           R11, R12, R13, R14, R15, RBP,
+//                                           (sequence "XMM%u", 0, 15))>;
 def CSR_64_MostRegs : CalleeSavedRegs<(add RBX, RCX, RDX, RSI, RDI, R8, R9, R10,
                                            R11, R12, R13, R14, R15, RBP,
-                                           (sequence "XMM%u", 0, 15))>;
+                                           (sequence "XMM%u", 0, 10))>;
+
 
 def CSR_32_AllRegs     : CalleeSavedRegs<(add EAX, EBX, ECX, EDX, EBP, ESI,
                                               EDI)>;
@@ -1121,13 +1129,22 @@ def CSR_32_AllRegs_AVX512 : CalleeSavedRegs<(add CSR_32_AllRegs,
 def CSR_64_AllRegs     : CalleeSavedRegs<(add CSR_64_MostRegs, RAX)>;
 def CSR_64_AllRegs_NoSSE : CalleeSavedRegs<(add RAX, RBX, RCX, RDX, RSI, RDI, R8, R9,
                                                 R10, R11, R12, R13, R14, R15, RBP)>;
+//def CSR_64_AllRegs_AVX : CalleeSavedRegs<(sub (add CSR_64_MostRegs, RAX,
+//                                                   (sequence "YMM%u", 0, 15)),
+//                                              (sequence "XMM%u", 0, 15))>;
 def CSR_64_AllRegs_AVX : CalleeSavedRegs<(sub (add CSR_64_MostRegs, RAX,
-                                                   (sequence "YMM%u", 0, 15)),
-                                              (sequence "XMM%u", 0, 15))>;
+                                                   (sequence "YMM%u", 0, 10)),
+                                              (sequence "XMM%u", 0, 10))>;
+
+//def CSR_64_AllRegs_AVX512 : CalleeSavedRegs<(sub (add CSR_64_MostRegs, RAX,
+//                                                      (sequence "ZMM%u", 0, 31),
+//                                                     (sequence "K%u", 0, 7)),
+//                                                 (sequence "XMM%u", 0, 15))>;
+
 def CSR_64_AllRegs_AVX512 : CalleeSavedRegs<(sub (add CSR_64_MostRegs, RAX,
                                                       (sequence "ZMM%u", 0, 31),
                                                       (sequence "K%u", 0, 7)),
-                                                 (sequence "XMM%u", 0, 15))>;
+                                                 (sequence "XMM%u", 0, 10))>;
 
 // Standard C + YMM6-15
 def CSR_Win64_Intel_OCL_BI_AVX : CalleeSavedRegs<(add RBX, RBP, RDI, RSI, R12,
@@ -1168,5 +1185,5 @@ def CSR_SysV64_RegCall_NoSSE : CalleeSavedRegs<(add RBX, RBP, RSP,
 //def CSR_SysV64_RegCall       : CalleeSavedRegs<(add CSR_SysV64_RegCall_NoSSE,
 //                                               (sequence "XMM%u", 8, 15))>;
 def CSR_SysV64_RegCall       : CalleeSavedRegs<(add CSR_SysV64_RegCall_NoSSE,
-                                               (sequence "XMM%u", 8, 13))>;
+                                               (sequence "XMM%u", 8, 10))>;
 

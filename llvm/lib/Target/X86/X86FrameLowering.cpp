@@ -106,6 +106,43 @@ bool X86FrameLowering::hasFP(const MachineFunction &MF) const
             MFI.hasCopyImplyingStackAdjustment());
 }
 
+
+void X86FrameLowering::emitAES128EncryptionRounds(MachineBasicBlock &MBB,
+                                                  MachineBasicBlock::iterator MBBI,
+                                                  const DebugLoc &DL,
+                                                  Register Message) const {
+    //AES whitening round
+    //BuildMI(MBB,MBBI,DL,TII.get(X86::PXORrr),IVector).addReg(IVector).addReg(Message);
+    //AES encryption rounds
+
+    // Ideal case for AVX512 setting where round keys are kept on XMM16-26
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM16);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM17);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM18);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM19);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM20);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM21);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM22);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM23);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(IVector).addReg(X86::XMM24);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM25);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCLASTrr),Message).addReg(Message).addReg(X86::XMM26);
+
+    // This only for performance approximation
+    //BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM15);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM15);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM15);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM15);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM15);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM15);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM15);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM15);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM15);
+    //    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCrr),Message).addReg(Message).addReg(X86::XMM15);
+    BuildMI(MBB,MBBI,DL,TII.get(X86::AESENCLASTrr),Message).addReg(Message).addReg(X86::XMM15);
+    return;
+}
+
 static unsigned getSUBriOpcode(bool IsLP64, int64_t Imm)
 {
     if (IsLP64)
@@ -1572,7 +1609,19 @@ void X86FrameLowering::emitPrologue(MachineFunction &MF,
         .setMIFlag(MachineInstr::FrameSetup);
         MBB.addLiveIn(Establisher);
     }
-
+    //Added for SORA prologue
+    if (MF.getFrameInfo().isMainSORA() && Is64Bit){
+        BuildMI(MBB,MBBI,DL,TII.get(X86::PXORrr),X86::XMM11).addReg(X86::XMM11).addReg(X86::XMM11);
+        BuildMI(MBB,MBBI,DL,TII.get(X86::PXORrr),X86::XMM12).addReg(X86::XMM12).addReg(X86::XMM12);
+        BuildMI(MBB,MBBI,DL,TII.get(X86::PXORrr),X86::XMM13).addReg(X86::XMM13).addReg(X86::XMM13);
+        BuildMI(MBB,MBBI,DL,TII.get(X86::PXORrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM14);
+        BuildMI(MBB,MBBI,DL,TII.get(X86::PXORrr),X86::XMM15).addReg(X86::XMM15).addReg(X86::XMM15);
+        BuildMI(MBB,MBBI,DL,TII.get(X86::RDRAND64r)).addReg(X86::R11);
+        BuildMI(MBB,MBBI,DL,TII.get(X86::MOV64toPQIrr)).addReg(X86::XMM15).addReg(X86::R11);
+        BuildMI(MBB,MBBI,DL,TII.get(X86::RDRAND64r)).addReg(X86::R11);
+        BuildMI(MBB,MBBI,DL,TII.get(X86::MOV64toPQIrr)).addReg(X86::XMM14).addReg(X86::R11);
+        BuildMI(MBB,MBBI,DL,TII.get(X86::PUNPCKLQDQrr),X86::XMM15).addReg(X86::XMM15).addReg(X86::XMM14);
+    }
     if (HasFP)
     {
         assert(MF.getRegInfo().isReserved(MachineFramePtr) && "FP reserved");
@@ -1588,6 +1637,26 @@ void X86FrameLowering::emitPrologue(MachineFunction &MF,
         // Callee-saved registers are pushed on stack before the stack is realigned.
         if (TRI->needsStackRealignment(MF) && !IsWin64Prologue)
             NumBytes = alignTo(NumBytes, MaxAlign);
+
+        CallingConv::ID CallingConvention = MF.getFunction().getCallingConv();
+
+        //BEGINNING OF SORA
+        //Initial prologue instrumentation for message length and return address
+        //Number of required XMM registers for return address, message length, RBP (base pointer), XMM12 (tag), pushed GPRs
+        if (MF.getFrameInfo().hasSORA() && Is64Bit){
+            //CMAC/OMAC first block for prologue
+            BuildMI(MBB,MBBI,DL,TII.get(X86::PXORrr),X86::XMM11).addReg(X86::XMM11).addReg(X86::XMM11);
+            BuildMI(MBB,MBBI,DL,TII.get(X86::PXORrr),X86::XMM13).addReg(X86::XMM13).addReg(X86::XMM13);
+            BuildMI(MBB,MBBI,DL,TII.get(X86::PXORrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM14);
+            //Include return address
+            addRegOffset(BuildMI(MBB, MBBI, DL, TII.get(X86::MOV64toPQIrm), X86::XMM14),X86::RSP, false, 0);
+            //Add frame pointer
+            BuildMI(MBB,MBBI,DL,TII.get(X86::MOV64toPQIrr)).addReg(X86::XMM11).addReg(MachineFramePtr);
+            BuildMI(MBB,MBBI,DL,TII.get(X86::PUNPCKLQDQrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM11);
+            //Perform AES rounds
+            emitAES128EncryptionRounds(MBB, MBBI, DL, X86::XMM14);
+            BuildMI(MBB,MBBI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM13).addReg(X86::XMM14);
+        }
 
         // Save EBP/RBP into the appropriate stack slot.
         BuildMI(MBB, MBBI, DL, TII.get(Is64Bit ? X86::PUSH64r : X86::PUSH32r))
@@ -2339,14 +2408,15 @@ void X86FrameLowering::emitEpilogue(MachineFunction &MF,
         }
     }
 
-    if (MF.getFrameInfo().hasSORA()){
+    if (MF.getFrameInfo().hasSORA() && Is64Bit){
         const BasicBlock *LLVM_BB = MBB.getBasicBlock();
         MachineBasicBlock *successMBB = MF.CreateMachineBasicBlock(LLVM_BB);
         MachineBasicBlock *failMBB = MF.CreateMachineBasicBlock(LLVM_BB);
         MachineFunction::iterator MBBIter = ++MBB.getIterator();
         MF.insert(MBBIter, successMBB);
         MF.insert(MBBIter, failMBB);
-        BuildMI(MBB, MBBI, DL,TII.get(X86::CMP64rr)).addReg(X86::R11).addReg(X86::R11).setMIFlag(MachineInstr::FrameDestroy);
+        BuildMI(MBB, MBBI, DL,TII.get(X86::COMISSrr)).addReg(X86::XMM11).addReg(X86::XMM14).setMIFlag(MachineInstr::FrameDestroy);
+        //BuildMI(MBB, MBBI, DL,TII.get(X86::COMISSrr)).addReg(X86::XMM11).addReg(X86::XMM11).setMIFlag(MachineInstr::FrameDestroy);
         BuildMI(MBB, MBBI, DL, TII.get(X86::JCC_1)).addMBB(failMBB).addImm(X86::COND_NE).setMIFlag(MachineInstr::FrameDestroy);
 
         MBB.addSuccessor(failMBB);
@@ -2641,11 +2711,14 @@ bool X86FrameLowering::assignCalleeSavedSpillSlots(
 
     //Added for SORA
     //It makes a workround solution to solve stack size, alignment issues. Normally RBX is defined as reserved register on X86RegisterInfo.cpp
+    unsigned DWordCount=0;
     if (MF.getFrameInfo().hasSORA() && Is64Bit)
     {
-        CalleeSavedInfo CSIItem(X86::RBX);
+        //CalleeSavedInfo CSIItem(X86::RBX);
+        CalleeSavedInfo CSIItem(X86::XMM12);
         //CSI.setRestored(IsRestored);
-        CSI.push_back(CSIItem);
+        CSI.insert(CSI.begin(),CSIItem);
+        //CSI.push_back(CSIItem);
     }
     // Assign slots for GPRs. It increases frame size.
     for (unsigned i = CSI.size(); i != 0; --i)
@@ -2653,8 +2726,14 @@ bool X86FrameLowering::assignCalleeSavedSpillSlots(
         unsigned Reg = CSI[i - 1].getReg();
 
         if (!X86::GR64RegClass.contains(Reg) && !X86::GR32RegClass.contains(Reg))
+        //if (!X86::GR64RegClass.contains(Reg))
             continue;
 
+        MFI.setGPRSpillCount(MFI.getGPRSpillCount()+1);
+        if (X86::GR32RegClass.contains(Reg))
+            DWordCount++;
+        else
+            DWordCount+=2;
         SpillSlotOffset -= SlotSize;
         CalleeSavedFrameSize += SlotSize;
 
@@ -2671,7 +2750,8 @@ bool X86FrameLowering::assignCalleeSavedSpillSlots(
         unsigned Reg = CSI[i - 1].getReg();
         if (X86::GR64RegClass.contains(Reg) || X86::GR32RegClass.contains(Reg))
             continue;
-
+        MFI.setXMMSpillCount(MFI.getXMMSpillCount()+1);
+        DWordCount+=4;
         // If this is k-register make sure we lookup via the largest legal type.
         MVT VT = MVT::Other;
         if (X86::VK16RegClass.contains(Reg))
@@ -2697,6 +2777,8 @@ bool X86FrameLowering::assignCalleeSavedSpillSlots(
             XMMCalleeSavedFrameSize += Size;
         }
     }
+    //+4 is for return address and base pointer
+    MFI.setSORASize(DWordCount+4);
 
     return true;
 }
@@ -2712,14 +2794,20 @@ bool X86FrameLowering::spillCalleeSavedRegisters(
     if (MBB.isEHFuncletEntry() && STI.is32Bit() && STI.isOSWindows())
         return true;
 
+
+
     // Push GPRs. It increases frame size.
     const MachineFunction &MF = *MBB.getParent();
+    int GPRPushCount=0;
+    int XMMPushCount=0;
+    bool IsFinalPush=false;
     unsigned Opc = STI.is64Bit() ? X86::PUSH64r : X86::PUSH32r;
     for (unsigned i = CSI.size(); i != 0; --i)
     {
         unsigned Reg = CSI[i - 1].getReg();
 
         if (!X86::GR64RegClass.contains(Reg) && !X86::GR32RegClass.contains(Reg))
+        //if (!X86::GR64RegClass.contains(Reg))
             continue;
 
         const MachineRegisterInfo &MRI = MF.getRegInfo();
@@ -2742,6 +2830,30 @@ bool X86FrameLowering::spillCalleeSavedRegisters(
             }
         }
 
+        if (MF.getFrameInfo().hasSORA() && Is64Bit){
+            GPRPushCount++;
+            IsFinalPush=(GPRPushCount==MF.getFrameInfo().getGPRSpillCount());
+            if (GPRPushCount%2==1){
+                if (IsFinalPush){
+                    BuildMI(MBB,MI,DL,TII.get(X86::PXORrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM14);
+                    BuildMI(MBB,MI,DL,TII.get(X86::MOV64toPQIrr)).addReg(X86::XMM14).addReg(Reg);
+                    BuildMI(MBB,MI,DL,TII.get(X86::PXORrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM13);
+                    emitAES128EncryptionRounds(MBB, MI, DL, X86::XMM14);
+                    BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM13).addReg(X86::XMM14);
+                }
+                else{
+                    BuildMI(MBB,MI,DL,TII.get(X86::MOV64toPQIrr)).addReg(X86::XMM14).addReg(Reg);
+                    //BuildMI(MBB,MI,DL,TII.get(X86::PSLLDQri),X86::XMM14).addReg(X86::XMM14).addImm(SlotSize);
+                }
+            }
+            else{
+                BuildMI(MBB,MI,DL,TII.get(X86::MOV64toPQIrr)).addReg(X86::XMM11).addReg(Reg);
+                BuildMI(MBB,MI,DL,TII.get(X86::PUNPCKLQDQrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM11);
+                BuildMI(MBB,MI,DL,TII.get(X86::PXORrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM13);
+                emitAES128EncryptionRounds(MBB, MI, DL, X86::XMM14);
+                BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM13).addReg(X86::XMM14);
+            }
+        }
         // Do not set a kill flag on values that are also marked as live-in. This
         // happens with the @llvm-returnaddress intrinsic and with arguments
         // passed in callee saved registers.
@@ -2749,6 +2861,7 @@ bool X86FrameLowering::spillCalleeSavedRegisters(
         // is not used after all.
         BuildMI(MBB, MI, DL, TII.get(Opc)).addReg(Reg, getKillRegState(CanKill))
         .setMIFlag(MachineInstr::FrameSetup);
+
     }
 
     // Make XMM regs spilled. X86 does not have ability of push/pop XMM.
@@ -2764,6 +2877,26 @@ bool X86FrameLowering::spillCalleeSavedRegisters(
         if (X86::VK16RegClass.contains(Reg))
             VT = STI.hasBWI() ? MVT::v64i1 : MVT::v16i1;
 
+
+        if (MF.getFrameInfo().hasSORA() && Is64Bit){
+            XMMPushCount++;
+            IsFinalPush=(XMMPushCount==MF.getFrameInfo().getXMMSpillCount());
+            if (IsFinalPush){
+                BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM14).addReg(Reg);
+                //TODO: Tweak final message with k0 and k1
+                BuildMI(MBB,MI,DL,TII.get(X86::PXORrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM13);
+                emitAES128EncryptionRounds(MBB, MI, DL, X86::XMM14);
+                BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM13).addReg(X86::XMM14);
+            }
+            else{
+                BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM14).addReg(Reg);
+                //TODO: Tweak final message with k0 and k1
+                BuildMI(MBB,MI,DL,TII.get(X86::PXORrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM13);
+                emitAES128EncryptionRounds(MBB, MI, DL, X86::XMM14);
+                BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM13).addReg(X86::XMM14);
+            }
+        }
+
         // Add the callee-saved register as live-in. It's killed at the spill.
         MBB.addLiveIn(Reg);
         const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg, VT);
@@ -2773,6 +2906,10 @@ bool X86FrameLowering::spillCalleeSavedRegisters(
         --MI;
         MI->setFlag(MachineInstr::FrameSetup);
         ++MI;
+
+        if (IsFinalPush)
+            BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM12).addReg(X86::XMM14);
+
     }
 
     return true;
@@ -2840,19 +2977,38 @@ bool X86FrameLowering::restoreCalleeSavedRegisters(
     DebugLoc DL = MBB.findDebugLoc(MI);
     MachineFunction *MF=MBB.getParent();
     unsigned GPRSP=0;
-    if (MBB.getParent()->getFrameInfo().hasSORA())
+
+    //if (MBB.getParent()->getFrameInfo().hasSORA() && MF->getFunction().getCallingConv()==CallingConv::X86_64_SysV && Is64Bit)
+    if (MBB.getParent()->getFrameInfo().hasSORA() && Is64Bit)
     {
+        //emitSPUpdate(MBB, MI, DL, GPRSP, /*InEpilogue=*/true);
         //TODO: Do not forget to include RBP in MAC or HASH directly at [RBP]. We do not reload RBP here as all following register reloads are dependent on this value
         if (hasFP(*MF)){
+            //CMAC/OMAC first block for epilogue
+            //Include return address
+            BuildMI(MBB,MI,DL,TII.get(X86::PXORrr),X86::XMM11).addReg(X86::XMM11).addReg(X86::XMM11);
+            BuildMI(MBB,MI,DL,TII.get(X86::PXORrr),X86::XMM13).addReg(X86::XMM13).addReg(X86::XMM13);
+            BuildMI(MBB,MI,DL,TII.get(X86::PXORrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM14);
+            addRegOffset(BuildMI(MBB, MI, DL, TII.get(X86::MOV64toPQIrm), X86::XMM14),
+                         X86::RBP, false, SlotSize);
+            addRegOffset(BuildMI(MBB, MI, DL, TII.get(X86::MOV64toPQIrm), X86::XMM11),
+                         X86::RBP, false, 0);
+            BuildMI(MBB,MI,DL,TII.get(X86::PUNPCKLQDQrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM11);
+            emitAES128EncryptionRounds(MBB, MI, DL, X86::XMM14);
+            BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM13).addReg(X86::XMM14);
             BuildMI(MBB, MI, DL, TII.get(X86::NOOP))
             .setMIFlag(MachineInstr::FrameDestroy);
         }
+        unsigned GPRPopCount=0;
+        unsigned XMMPopCount=0;
+        bool IsFinalPop=false;
+        unsigned operandSize=8;
         // Reload GPRs from stack frame with the order of their pushes
         for (unsigned i = CSI.size(); i != 0; --i)
         {
             unsigned Reg = CSI[i-1].getReg();
-            if (!X86::GR64RegClass.contains(Reg) &&
-                    !X86::GR32RegClass.contains(Reg))
+            if (!X86::GR64RegClass.contains(Reg) && !X86::GR32RegClass.contains(Reg))
+            //if (!X86::GR64RegClass.contains(Reg))
                 continue;
 
 
@@ -2860,21 +3016,49 @@ bool X86FrameLowering::restoreCalleeSavedRegisters(
             MVT VT = MVT::Other;
             if (X86::VK16RegClass.contains(Reg))
                 VT = STI.hasBWI() ? MVT::v64i1 : MVT::v16i1;
-            GPRSP+=SlotSize;
+
+
             const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg, VT);
             TII.loadRegFromStackSlot(MBB, MI, Reg, CSI[i-1].getFrameIdx(), RC, TRI);
+
+            operandSize=(X86::GR32RegClass.contains(Reg))?4:8;
+
+            GPRSP+=operandSize;
+            GPRPopCount++;
+            IsFinalPop=(GPRPopCount==MF->getFrameInfo().getGPRSpillCount());
+            if (GPRPopCount%2==1){
+                if (IsFinalPop){
+                    BuildMI(MBB,MI,DL,TII.get(X86::PXORrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM14);
+                    BuildMI(MBB,MI,DL,TII.get(X86::MOV64toPQIrr)).addReg(X86::XMM14).addReg(Reg);
+                    //BuildMI(MBB,MI,DL,TII.get(X86::PSLLDQri),X86::XMM14).addReg(X86::XMM14).addImm(SlotSize);
+                    BuildMI(MBB,MI,DL,TII.get(X86::PXORrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM13);
+                    emitAES128EncryptionRounds(MBB, MI, DL, X86::XMM14);
+                    BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM13).addReg(X86::XMM14);
+                }
+                else{
+                    BuildMI(MBB,MI,DL,TII.get(X86::MOV64toPQIrr)).addReg(X86::XMM14).addReg(Reg);
+                    //BuildMI(MBB,MI,DL,TII.get(X86::PSLLDQri),X86::XMM14).addReg(X86::XMM14).addImm(SlotSize);
+                }
+            }
+            else{
+                BuildMI(MBB,MI,DL,TII.get(X86::MOV64toPQIrr)).addReg(X86::XMM11).addReg(Reg);
+                BuildMI(MBB,MI,DL,TII.get(X86::PUNPCKLQDQrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM11);
+                BuildMI(MBB,MI,DL,TII.get(X86::PXORrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM13);
+                emitAES128EncryptionRounds(MBB, MI, DL, X86::XMM14);
+                BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM13).addReg(X86::XMM14);
+            }
 
             --MI;
             MI->setFlag(MachineInstr::FrameSetup);
             ++MI;
 
         }
+        //emitSPUpdate(MBB, MI, DL, GPRSP, /*InEpilogue=*/true);
         // Reload XMMs from stack frame with the order of their pushes
         for (unsigned i = CSI.size(); i != 0; --i)
         {
             unsigned Reg = CSI[i-1].getReg();
-            if (X86::GR64RegClass.contains(Reg) ||
-                    X86::GR32RegClass.contains(Reg))
+            if (X86::GR64RegClass.contains(Reg) || X86::GR32RegClass.contains(Reg))
                 continue;
 
             // If this is k-register make sure we lookup via the largest legal type.
@@ -2882,8 +3066,32 @@ bool X86FrameLowering::restoreCalleeSavedRegisters(
             if (X86::VK16RegClass.contains(Reg))
                 VT = STI.hasBWI() ? MVT::v64i1 : MVT::v16i1;
 
+            XMMPopCount++;
+            IsFinalPop=(XMMPopCount==MF->getFrameInfo().getXMMSpillCount());
+            if (IsFinalPop){
+                //Moves the MAC tag of current stack frame to a caller-saved FP register before the caller's MAC tag is restored.
+                BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM11).addReg(X86::XMM12);
+            }
+
             const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg, VT);
             TII.loadRegFromStackSlot(MBB, MI, Reg, CSI[i-1].getFrameIdx(), RC, TRI);
+
+
+            if (IsFinalPop){
+                BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM14).addReg(Reg);
+                //TODO: Tweak final message with k0 and k1
+                BuildMI(MBB,MI,DL,TII.get(X86::PXORrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM13);
+                emitAES128EncryptionRounds(MBB, MI, DL, X86::XMM14);
+                //BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM13).addReg(X86::XMM14);
+                //BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM12).addReg(X86::XMM14);
+            }
+            else{
+                BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM14).addReg(Reg);
+                //TODO: Tweak final message with k0 and k1
+                BuildMI(MBB,MI,DL,TII.get(X86::PXORrr),X86::XMM14).addReg(X86::XMM14).addReg(X86::XMM13);
+                emitAES128EncryptionRounds(MBB, MI, DL, X86::XMM14);
+                BuildMI(MBB,MI,DL,TII.get(X86::MOVAPSrr)).addReg(X86::XMM13).addReg(X86::XMM14);
+            }
         }
 //        if (hasFP(*MF)){
 //            const unsigned FramePtr = TRI->getFrameRegister(*MF);
@@ -2901,8 +3109,7 @@ bool X86FrameLowering::restoreCalleeSavedRegisters(
         for (unsigned i = 0, e = CSI.size(); i != e; ++i)
         {
             unsigned Reg = CSI[i].getReg();
-            if (X86::GR64RegClass.contains(Reg) ||
-                    X86::GR32RegClass.contains(Reg))
+            if (X86::GR64RegClass.contains(Reg) || X86::GR32RegClass.contains(Reg))
                 continue;
 
             // If this is k-register make sure we lookup via the largest legal type.

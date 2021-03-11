@@ -277,8 +277,14 @@ private:
   /// Set to true if this function is main function for SORA.
   bool IsMainSORA = false;
 
-  /// Set to the number of 64-bit GPR as spilled area size for SORA.
+  /// Set to the number of 64-bit as spilled area size for SORA.
   unsigned SORASize = 0;
+
+  /// Set to the number of 64-bit GPR spilled
+  unsigned GPRSpillCount = 0;
+
+  /// Set to the number of 128-bit XMM spilled
+  unsigned XMMSpillCount = 0;
 
   /// The frame index for the stack protector.
   int StackProtectorIdx = -1;
@@ -620,9 +626,16 @@ public:
   void setIsMainSORA(bool V) { IsMainSORA = V; }
 
   /// Return count of GPRs spilled for SORA.
-  bool getSORASize() const { return SORASize; }
+  unsigned getSORASize() const { return SORASize; }
   void setSORASize(unsigned V) { SORASize = V; }
 
+   /// Return count of GPRs spilled
+  unsigned getGPRSpillCount() const { return GPRSpillCount; }
+  void setGPRSpillCount(unsigned V) { GPRSpillCount = V; }
+
+  /// Return count of XMMs spilled
+  unsigned getXMMSpillCount() const { return XMMSpillCount; }
+  void setXMMSpillCount(unsigned V) { XMMSpillCount = V; }
 
   /// Returns true if the function contains opaque dynamic stack adjustments.
   bool hasOpaqueSPAdjustment() const { return HasOpaqueSPAdjustment; }

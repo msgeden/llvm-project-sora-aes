@@ -993,6 +993,18 @@ public:
                      "TargetInstrInfo::loadRegFromStackSlot!");
   }
 
+    /// Load the specified register of the given register class from the specified
+  /// stack frame index. The load instruction is to be added to the given
+  /// machine basic block before the specified machine instruction.
+  virtual void loadGPRegFromStackSlot(MachineBasicBlock &MBB,
+                                    MachineBasicBlock::iterator MI,
+                                    Register DestReg, int FrameIndex,
+                                    const TargetRegisterClass *RC,
+                                    const TargetRegisterInfo *TRI) const {
+    llvm_unreachable("Target didn't implement "
+                     "TargetInstrInfo::loadRegFromStackSlot!");
+  }
+
   /// This function is called for all pseudo instructions
   /// that remain after register allocation. Many pseudo instructions are
   /// created to help register allocation. This is the place to convert them
